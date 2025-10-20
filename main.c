@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "raylib.h"
@@ -9,7 +10,7 @@
 #define TARGET_FPS 60
 #define BG_COLOR WHITE
 
-#define CELL_SIZE 10
+#define CELL_SIZE 20
 #define CELL_COLOR BLACK
 
 #define GRID_COLS (SCREEN_WIDTH / CELL_SIZE)
@@ -49,6 +50,7 @@ int main(void) {
 
     while (!WindowShouldClose()) {
         input();
+
         update(GetFrameTime());
         render();
     }
@@ -87,8 +89,47 @@ static void input(void) {
     }
 }
 
+static int count_neighbours(int y, int x) {
+    int count = 0;
+    count += (x+1 < GRID_COLS) ?                       grid[y][x+1] : 0;
+    count += (x-1 > 0) ?                               grid[y][x-1] : 0;
+    count += (y+1 < GRID_ROWS) ?                       grid[y+1][x] : 0;
+    count += (y-1 > 0) ?                               grid[y-1][x] : 0;
+    count += (y+1 < GRID_ROWS && x+1 < GRID_COLS) ?    grid[y+1][x+1] : 0;
+    count += (y-1 > 0 && x+1 < GRID_COLS) ?            grid[y-1][x+1] : 0;
+    count += (y+1 < GRID_ROWS && x-1 > 0) ?            grid[y+1][x-1] : 0;
+    count += (y-1 > 0 && x-1 > 0) ?                    grid[y-1][x-1] : 0;
+    return count;
+}
+
 static void update(float dt) {
-    // TODO: impl
+    // TODO: impl    
+    static float reload_time = 1.f;
+
+    reload_time += dt;
+
+    if (reload_time < 0.1f)
+        return;
+    
+    reload_time = 0.0f;
+    if(!running) return;
+    for(int y = 0; y < GRID_ROWS; ++y) {
+        for(int x = 0; x < GRID_COLS; ++x) {
+            next_grid[y][x] = grid[y][x];
+            int count = count_neighbours(y,x);
+            if(grid[y][x]) {
+                if(count < 2 || count > 3)
+                   next_grid[y][x] = 0;
+            }
+            else {
+                if(count == 3)
+                    next_grid[y][x] = 1;
+            }
+        }
+    }
+    cell_t (*temp)[GRID_COLS] = grid;
+    grid = next_grid;
+    next_grid = temp;
 }
 
 static void randomize_grid(void) {
